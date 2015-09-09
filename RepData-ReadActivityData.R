@@ -29,16 +29,24 @@ summary(activity)
 # If there are 288 five minute intervals in a day
 # and we number then 0 through 287
 # and then we multiply by 5; the highest interval should be (5*287=1435).
+# YET, the max interval is 2355 and even the 3rd quintile is 1766.
+# plot(activity$interval) # dense rectangular plot
 
 # ANSWER: Series jumps from "55" to "100" on the hour
 levels(activity$interval)
 
-# So, really, ativity$hour should be understood as a 3 digit number
-# (with leading zeros), where the first digit is the hour and the other two
-# digits are the minute.
-# YET, the max interval is 2355 and even the 3rd quintile is 1766.
+# So, really, ativity$hour should be understood as a 4 digit number
+# (with leading zeros), where the first twp digits are the hour and the other two
+# digits are the minute (hhmm).
 
-# plot(activity$interval)
-activity$interval <- as.factor(activity$interval)
+# Fix the interval by formating with leading zero.
+activity$interval <- as.integer(activity$interval)
+activity$interval <- sprintf("%04d", activity$interval)
+class(activity$interval)
+
+# format date
+datetimestring     <- paste(activity$date, activity$interval)
+activity$datetime  <- strptime(datetimestring, "%Y-%m-%d %H%M", tz = "")
+str(activity)
 
 # End of: RepData-ReadActivityData.R
