@@ -35,18 +35,87 @@ summary(activity)
 # ANSWER: Series jumps from "55" to "100" on the hour
 levels(activity$interval)
 
-# So, really, ativity$hour should be understood as a 4 digit number
+# So, really, activity$hour should be understood as a 4 digit number
 # (with leading zeros), where the first twp digits are the hour and the other two
 # digits are the minute (hhmm).
 
-# Fix the interval by formating with leading zero.
-activity$interval <- as.integer(activity$interval)
-activity$interval <- sprintf("%04d", activity$interval)
-class(activity$interval)
+# Rewrote this section to keep original activity variable intact.
+
+# Convert the interval to HHMM by formating with leading zero.
+activity$HHMM <- sprintf("%04d", as.integer(activity$interval) )
+class(activity$HHMM)
 
 # format date
-datetimestring     <- paste(activity$date, activity$interval)
+datetimestring     <- paste(activity$date, activity$HHMM)
 activity$datetime  <- strptime(datetimestring, "%Y-%m-%d %H%M", tz = "")
 str(activity)
 
+# PER DAY
+# Question 1-1: Calculate the total number of steps taken per day.
+# HONOR CODE: Used example in Jared Learner's "R for Everyone" page 121 (diamonds)
+PerDay <- aggregate(steps ~ date, activity, sum)
+
+# Question 1-2: Make a histogram of the total number of steps taken each day
+# Modified default hist() to break at 1,000 steps
+hist(PerDay$steps, breaks=25, 
+     main = paste("Histogram of Steps Per Day", 
+                  "\n Mean = " , round(mean(PerDay$steps), digits=0),
+                  "\n Median =", median(PerDay$steps) 
+                  ) 
+     )
+
+# Question 1-3: Calculate and report the mean and median of the total number of steps taken per day
+meansteps   <- mean(PerDay$steps)
+mediansteps <- median(PerDay$steps)
+
+# Only last line prints because values are so close together.
+abline(v = mean(PerDay$steps), col = "Green")
+abline(v = median(PerDay$steps), col = "Blue")
+
+# PER INTERVAL
+# Question 2-1: Make a time series plot (i.e. type = "l") 
+# of the 5-minute interval (x-axis) and the average number of steps taken, 
+# averaged across all days (y-axis)
+
+# INTERPRETATION: This assumes you have calculated steps per five minute interval
+# (in 24 hour cycle)
+PerInterval <- aggregate(steps ~ factor(HHMM), activity, mean)
+
+ColumnNames <- c("HHMM", "steps")
+colnames(PerInterval) <- ColumnNames
+
+# Not required, just curious
+hist(PerInterval$steps, breaks=25, 
+     main = paste("Histogram of Average Steps Per Five Minute Interval", 
+                  "\n Mean = " , round(mean(PerInterval$steps), digits=0),
+                  "\n Median =", round(median(PerInterval$steps), digits=0)
+     ) 
+)
+
+# Required
+PerInterval$timeofday  <- strptime(PerInterval$HHMM, "%H%M", tz = "")
+
+with(PerInterval,
+    plot(timeofday, steps, type = "l", 
+        main = paste("Average Steps Per Five Minute Interval", 
+             "\n Maximum = " , round(max(PerInterval$steps), digits=0)
+             )
+        )
+)
+
+# Question 2-2: Which 5-minute interval, on average across all the days 
+# in the dataset, contains the maximum number of steps?
+
+Max5MinuteSteps <- PerInterval[PerInterval$steps == max(PerInterval$steps), ]
+Max5MinuteSteps
+Max5MinuteSteps$timeofday
+
+with(PerInterval,
+     plot(timeofday, steps, type = "l", 
+          main = paste("Average Steps Per Five Minute Interval", 
+                       "\n Maximum = " , round(max(PerInterval$steps), digits=0),
+                       "\n Maximum occured at: ", format(Max5MinuteSteps$timeofday, "%H:%M AM")
+          )
+     )
+)
 # End of: RepData-ReadActivityData.R
