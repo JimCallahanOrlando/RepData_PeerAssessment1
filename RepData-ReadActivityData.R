@@ -33,7 +33,7 @@ summary(activity)
 # plot(activity$interval) # dense rectangular plot
 
 # ANSWER: Series jumps from "55" to "100" on the hour
-levels(activity$interval)
+head(levels(as.factor(activity$interval)), 15)
 
 # So, really, activity$hour should be understood as a 4 digit number
 # (with leading zeros), where the first twp digits are the hour and the other two
@@ -118,4 +118,44 @@ with(PerInterval,
           )
      )
 )
+
+# Question 3-1: Calculate and report the total number of missing values 
+# in the dataset (i.e. the total number of rows with NAs)
+
+sum(is.na(activity$steps))       # How many missing values?
+mean(is.na(activity$steps))      # What percent missing values?
+
+
+# Question 3-2: Devise a strategy for filling in all of the missing values 
+# in the dataset. The strategy does not need to be sophisticated. 
+# For example, you could use the mean/median for that day, or the mean 
+# for that 5-minute interval, etc.
+
+# replace()  # may may be useful.
+
+# Question 3-3: Create a new dataset that is equal to the original dataset 
+# but with the missing data filled in.
+
+
+# Question 3-4: Make a histogram of the total number of steps taken each day and
+# Calculate and report the mean and median total number of steps taken per day.
+# Do these values differ from the estimates from the first part of the assignment?
+# What is the impact of imputing missing data on the estimates of the total 
+# daily number of steps?
+
+# Question 4: Are there differences in activity patterns between weekdays and weekends?
+
+# Question 4-1: Create a new factor variable in the dataset with 
+# two levels – “weekday” and “weekend” indicating whether a given date is a 
+# weekday or weekend day.
+weekdays(as.Date("2015/9/10"), abbreviate=TRUE)
+
+# Question 4-2: Make a panel plot containing a time series plot (i.e. type = "l") 
+# of the 5-minute interval (x-axis) and the average number of steps taken,
+# averaged across all weekday days or weekend days (y-axis).
+# See the README file in the GitHub repository to see an example 
+# of what this plot should look like using simulated data.
+
+
+
 # End of: RepData-ReadActivityData.R
