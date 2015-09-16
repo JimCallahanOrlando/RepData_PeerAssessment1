@@ -48,7 +48,17 @@ class(activity$HHMM)
 # format date
 datetimestring     <- paste(activity$date, activity$HHMM)
 activity$datetime  <- strptime(datetimestring, "%Y-%m-%d %H%M", tz = "")
+activity$dayofweek <- weekdays(activity$datetime, abbreviate=TRUE)
+activity$daytype = "Weekday"
+activity$daytype[activity$dayofweek == "Sat" | activity$dayofweek == "Sun"] <- "Weekend"
 str(activity)
+
+# Convert to factors
+activity$dayofweek = factor(activity$dayofweek) 
+activity$daytype   = factor(activity$daytype)
+
+table(activity$dayofweek)
+table(activity$daytype)
 
 # PER DAY
 # Question 1-1: Calculate the total number of steps taken per day.
@@ -79,45 +89,54 @@ abline(v = median(PerDay$steps), col = "Blue")
 
 # INTERPRETATION: This assumes you have calculated steps per five minute interval
 # (in 24 hour cycle)
-PerInterval <- aggregate(steps ~ factor(HHMM), activity, mean)
-
+# PerIntervalSum     <- aggregate(steps ~ factor(HHMM), activity, sum)
+PerIntervalMean    <- aggregate(steps ~ factor(HHMM), activity, mean)
+PerIntervalMedian  <- aggregate(steps ~ factor(HHMM), activity, median)
 ColumnNames <- c("HHMM", "steps")
-colnames(PerInterval) <- ColumnNames
+# colnames(PerIntervalSum)    <- ColumnNames
+colnames(PerIntervalMean)   <- ColumnNames
+colnames(PerIntervalMedian) <- ColumnNames
 
 # Not required, just curious
-hist(PerInterval$steps, breaks=25, 
+hist(PerIntervalMean$steps, breaks=25, 
      main = paste("Histogram of Average Steps Per Five Minute Interval", 
-                  "\n Mean = " , round(mean(PerInterval$steps), digits=0),
-                  "\n Median =", round(median(PerInterval$steps), digits=0)
+                  "\n Mean = " , round(mean(PerIntervalMean$steps), digits=0),
+                  "\n Median =", round(median(PerIntervalMean$steps), digits=0)
      ) 
 )
 
 # Required
-PerInterval$timeofday  <- strptime(PerInterval$HHMM, "%H%M", tz = "")
+PerIntervalMean$timeofday    <- strptime(PerIntervalMean$HHMM, "%H%M", tz = "")
+PerIntervalMedian$timeofday  <- strptime(PerIntervalMedian$HHMM, "%H%M", tz = "")
 
-with(PerInterval,
+with(PerIntervalMean,
     plot(timeofday, steps, type = "l", 
         main = paste("Average Steps Per Five Minute Interval", 
-             "\n Maximum = " , round(max(PerInterval$steps), digits=0)
+             "\n Maximum = " , round(max(PerIntervalMean$steps), digits=0)
              )
         )
 )
 
+
+
 # Question 2-2: Which 5-minute interval, on average across all the days 
 # in the dataset, contains the maximum number of steps?
 
-Max5MinuteSteps <- PerInterval[PerInterval$steps == max(PerInterval$steps), ]
+Max5MinuteSteps <- PerIntervalMean[PerIntervalMean$steps == max(PerIntervalMean$steps), ]
+# ColumnNames <- c("timeofday", "steps")
+# colnames(Max5MinuteSteps) <- ColumnNames
 Max5MinuteSteps
-Max5MinuteSteps$timeofday
 
-with(PerInterval,
-     plot(timeofday, steps, type = "l", 
+
+plot(PerIntervalMean$timeofday, PerIntervalMean$steps, type = "l",
           main = paste("Average Steps Per Five Minute Interval", 
-                       "\n Maximum = " , round(max(PerInterval$steps), digits=0),
-                       "\n Maximum occured at: ", format(Max5MinuteSteps$timeofday, "%H:%M AM")
+                       "\n Maximum = " , round(max(PerIntervalMean$steps), digits=0),
+                       "\n Maximum occurs at: ", format(Max5MinuteSteps$timeofday, "%H:%M AM")
+                        )
           )
-     )
-)
+
+abline(h = round(max(PerIntervalMean$steps), digits=0), col = "red") 
+# abline(v = Max5MinuteSteps$timeofday, col = "red") 
 
 # Question 3-1: Calculate and report the total number of missing values 
 # in the dataset (i.e. the total number of rows with NAs)
@@ -132,6 +151,18 @@ mean(is.na(activity$steps))      # What percent missing values?
 # for that 5-minute interval, etc.
 
 # replace()  # may may be useful.
+
+# activity$intervalmeansteps <- as.integer(round(PerInterval$steps, digits=0))
+
+### Have to do in two steps (one to create per interval & second to recycle)
+# PerIntervalMedian <- aggregate(steps ~ factor(HHMM), activity, median)
+# PerInterval$mediansteps <-cbind(PerInterval, PerIntervalMedian$steps)
+str(PerIntervalMean)
+# activity$intervalmediansteps <- PerInterval$mediansteps
+
+# max(activity$steps)
+# max(activity$intervalmeansteps)
+max(activity$intervalmediansteps)
 
 # Question 3-3: Create a new dataset that is equal to the original dataset 
 # but with the missing data filled in.
@@ -155,6 +186,8 @@ weekdays(as.Date("2015/9/10"), abbreviate=TRUE)
 # averaged across all weekday days or weekend days (y-axis).
 # See the README file in the GitHub repository to see an example 
 # of what this plot should look like using simulated data.
+
+
 
 
 

@@ -1,79 +1,179 @@
 ---
-title: "Reproducible Research: Peer Assessment 1"
+title: 'Reproducible Research: Peer Assessment 1'
 author: "Jim Callahan"
 date: "September 13, 2015"
-output: 
+output:
   html_document:
-    keep_md: true
+    keep_md: yes
+  pdf_document: default
 ---
+This report analyzes the number of steps taken by an anonymous individual
+user of a personal fitness armband device similar to the Nike "Fit" armband. 
+The number of steps were measured over five minute intervals, 
+24 hours a day during the months of October and November 2012.
 
-## Loading and preprocessing the data
+The 2012 steps per five minute interval data is for the months of
+October (30 days) and November (31 days) for a total of 61 days. 
+In each hour there are 12 "five minute" intervals 
+(60/5 = 12 intervals per hour). Thus, there are 288 five minute 
+intervals in a 24 hour day (288 = 24 hours * 12 intervals per hour).
+Thus with 288 measurements per day for 61 days (24 hour days) 
+one would **expect 17,568 observations** (17,568 = 61 days * 288 per 24 hour day).
+
+
+
+### Loading and preprocessing the data
+The dataset is stored in a comma-separated-value (CSV) file in the main direcory of a GitHub repository. So, we can load the data with an R "read.csv()" function. In this case
+we will use an R dataframe name "activity" the same as the input filename. Finally, the initial struture of the R dataframe is shown with the R str() function:
 ```{r, echo=TRUE}
 #### Set directory to the local GitHub project of this assignment.
 setwd("~\\GitHub\\RepData_PeerAssessment1")
 
 activity <- read.csv("activity.csv", 
                      na.strings = "NA", stringsAsFactors = FALSE )
+
+str(activity)
+```
+
+**As expected**, for 61 days, **the "activity" data frame has 17,568 observations**.
+The **"activity"** data frame has three variables: **"steps", "date"** and **"interval"**.
+The initial values for the **"steps"** variable are missing.
+The  **"date"** variable is a character string we will want to convert
+that to an R date type using the R "as.Date()" function.
+The **"interval"** variable is an integer that intially appears to be incremented
+by 5 for each observation, this first impression will be modified on 
+closer observation. 
+
+So, let's convert **"date"** to an R date type and take a closer look 
+at **"steps"** and **"interval"**. We want to know if all of the **"steps"** are missing?
+or if not all are missing, how many are missing? and what percentage of the
+dataset is that? For the **"interval"** variable, we want to know how often the pattern restarts
+at zero (or does it increase all the way through the data set?).
+We will print 289 observations of **"interval"**, one more than the 288 observations per day.
+```{r, echo=TRUE}
 activity$date <- as.Date(activity$date)
+sum(is.na(activity$steps))       # How many missing values?
+mean(is.na(activity$steps))      # What percent missing values?
+head(activity$interval, 289)      # What does a full daily cycle look like?
+```
 
-### Data is for October and November 2012 (61 days)
-### In each hour there are 12 "five minute" intervals 
-### (60/5 = 12 intervals per hour)
-### There are 288 five minute intervals in a 24-hour day 
-### (24 hours*12 intervals per hour = 288 intervals per 24 hours)
-### In 61 days (24 hour days) there are 17,568 
-### five minute intervals (61*288)
-### There are 17,568 observations (records) 
-### of which 2,304 (13.11%) of the "step" values are missing.
+Over 2,300 observations of the **"steps"** variable are missing, 
+while this is a lot; it is still only 13.1% of the 17,568 observations. 
+So, for our initial analysis, we can simply ignore the missing values, 
+by removing them and only work with complete cases. Later, we can try
+to guess (technically, "impute") the missing values in a process
+called "imputation" and see whether that changes the analysis. Not shown,
+but there are no missing values for **"date"** and **"interval"**.
 
-### WHAT DOES NOT MAKE SENSE?
-### If there are 288 five minute intervals in a day
-### and we number then 0 through 287
-### and then we multiply by 5; 
-### the highest interval should be (5*287=1435).
-### YET, the max interval is 2355 
-### and even the 3rd quintile is 1766.
-### plot(activity$interval) # dense rectangular plot
+The **"interval"** variable does not make sense as an integer.  
+Although, the **"interval"** variable does reset to zero at observation 67,
+as expected (recall there are 66 observations per 24 hour day); 
+the 66th observation is 2,355 rather than the 1,435 one would expect
+if one multiplied the intervals 0 (zero) through 287 by 5 (1,435 = 287*5). 
+That is a big gap between 2,355 and 1,435 so something different is going on.  
 
-### ANSWER: Series jumps from "55" to "100" on the hour
-head(levels(as.factor(activity$interval)), 15)
+If we examine the first dozen observations we see the **"interval"** variable jumps 
+from 55 to 100. It is 100 when it should be 60. But, wait, if the "1" in "100" 
+represents "one hour" and the "23" in "2355" represents "23 hours" then it is clear 
+that the **"interval"** variable is actually hours and minutes with the leading zeros removed. 
+That is, "100" should be understood as "01:00" and "2355" should be understood as "23:55" and so on.
 
-### So, really, activity$hour should be understood 
-### as a 4 digit number # (with leading zeros), 
-### where the first twp digits are the hour 
-### and the other two # digits are the minute (hhmm).
-
-# Convert the interval to HHMM by formating with leading zero.
+We can fix the integer representation by using the **R "sprinf()"** function 
+to restore the leading zeros to the time and store the result in a variable 
+named **"HHMM"** which in turn, can be combined with the date to build a POSIX standard 
+date time string in a variable named, **"datetime"**.
+```{r, echo=TRUE}
+# Convert the interval to HHMM by formating with leading zero
 activity$HHMM <- sprintf("%04d",as.integer(activity$interval))
 # Now we can combine date and time as a string
-# and format the resulting string as a POSIX datetime string.
+# and format the resulting string as a POSIX datetime string
 datetimestring     <- paste(activity$date, activity$HHMM)
 activity$datetime  <- strptime(datetimestring, 
                                "%Y-%m-%d %H%M", tz = "")
+activity$dayofweek <- weekdays(activity$datetime, abbreviate=TRUE)
+activity$daytype = "weekday"
+activity$daytype[activity$dayofweek == "Sat" | activity$dayofweek == "Sun"] <- "weekend"
+# Convert to factors
+activity$dayofweek = factor(activity$dayofweek)
+activity$daytype   = factor(activity$daytype)
+```
+With these changes, the **"activity"** data set is ready for the first stage
+of our analysis where we simply ignore (remove) the missing values. 
+But, for cosmetic reasons, we might want to reorder the **"activity"** data frame variables 
+in a more logical order:
+```{r}
+activity <- subset( activity, select = c(datetime, date, dayofweek, daytype, HHMM, interval, steps))
+str(activity)
 ```
 
 
+### What is mean total number of steps taken per day?
+If we sum the steps all of the intervals for a given date, we have a daily total.
+This use of the **R aggregate()** function follows an example in Jared Lander's 
+book *"R for Everyone"* page 121 where he uses the **"diamonds"** data frame 
+which comes with the **ggplot2** package.
 
-## What is mean total number of steps taken per day?
+Once we have a daily total for each of the days; we can calcuate a value for
+the average (mean) and median by removing the NAs, that would otherwise
+cause an NA result.
 ```{r, echo=TRUE}
 PerDay <- aggregate(steps ~ date, data=activity, sum)  
-mean(PerDay$steps)
-median(PerDay$steps) 
+meanstepsperday <- round(mean(PerDay$steps, na.rm = TRUE), digits = 0)
+meanstepsperday
+medianstepsperday <- median(PerDay$steps, na.rm = TRUE) 
+medianstepsperday
+
 ```
 
+The **average (mean) number of steps per day** is 
+**`r format(meanstepsperday, format="f", big.mark = ",")` **; 
+and the **median number of steps per day** is close at 
+**`r format(medianstepsperday, format="f", big.mark = ",")`**.  
 
-## What is the average daily activity pattern?
+### What is the average daily activity pattern?
+These 10,000+ values seem plausible to me for an active person   
+with a 10,000 step a day goal, which seems to be popular goal:
+
+> "The origins of the 10,000-steps recommendation  
+> aren't exactly scientific.  Pedometers sold in Japan  
+> in the 1960s were marketed under the name "manpo-kei,"  
+> which translates to "10,000 steps meter"   
+> ...studies conducted since then suggest that people who 
+> increased their walking to 10,000 steps daily  
+> experience health benefits."  
+> Rachael Rettner, *"The Truth About '10,000 Steps' a Day"* 
+LiveScience.org, March 2014  
+retrieved from **LiveScience.org** during September 2015  
+http://www.livescience.com/43956-walking-10000-steps-healthy.html
+
 ```{r, echo=FALSE}
-hist(PerDay$steps, breaks=25, 
-     main = paste("Histogram of Steps Per Day", 
+hist(PerDay$steps, breaks=25,
+     xlab = "Total Steps per Day",
+     ylab = "Frequency (number of days)",
+     main = paste("Histogram of Total Steps Per Day", 
                   "\n Mean = " , round(mean(PerDay$steps), digits=0),
                   "\n Median =", median(PerDay$steps) 
+                  
                   ) 
      )
+# Only last line prints because values are so close together.
+abline(v = mean(PerDay$steps), col = "Green")
+abline(v = median(PerDay$steps), col = "Blue")
 ```
 
-## Imputing missing values
+While a central value (mean or median) near 10,000 seems plausible for   
+an active person with a 10,000 steps per day goal; the extremes of   
+near zero steps per day and a maximum over 20,000 steps per day may   
+require further inquiry. For example, did the person spend a sick day  
+in bed (with near zero steps)? and did the person participate in   
+a 10,000 step walk in addition to their normal 10,000 steps  
+(resulting in over 20,000 steps per day)?  
 
 
 
-## Are there differences in activity patterns between weekdays and weekends?
+
+### Imputing missing values
+
+
+
+### Are there differences in activity patterns between weekdays and weekends?
