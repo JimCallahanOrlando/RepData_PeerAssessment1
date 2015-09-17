@@ -135,6 +135,9 @@ activity$datetime  <- strptime(datetimestring,
 activity$dayofweek <- weekdays(activity$datetime, abbreviate=TRUE)
 activity$daytype = "weekday"
 activity$daytype[activity$dayofweek == "Sat" | activity$dayofweek == "Sun"] <- "weekend"
+# Convert to factors
+activity$dayofweek = factor(activity$dayofweek)
+activity$daytype   = factor(activity$daytype)
 ```
 With these changes, the **"activity"** data set is ready for the first stage
 of our analysis where we simply ignore (remove) the missing values. 
@@ -150,8 +153,8 @@ str(activity)
 ## 'data.frame':	17568 obs. of  7 variables:
 ##  $ datetime : POSIXlt, format: "2012-10-01 00:00:00" "2012-10-01 00:05:00" ...
 ##  $ date     : Date, format: "2012-10-01" "2012-10-01" ...
-##  $ dayofweek: chr  "Mon" "Mon" "Mon" "Mon" ...
-##  $ daytype  : chr  "weekday" "weekday" "weekday" "weekday" ...
+##  $ dayofweek: Factor w/ 7 levels "Fri","Mon","Sat",..: 2 2 2 2 2 2 2 2 2 2 ...
+##  $ daytype  : Factor w/ 2 levels "weekday","weekend": 1 1 1 1 1 1 1 1 1 1 ...
 ##  $ HHMM     : chr  "0000" "0005" "0010" "0015" ...
 ##  $ interval : int  0 5 10 15 20 25 30 35 40 45 ...
 ##  $ steps    : int  NA NA NA NA NA NA NA NA NA NA ...
@@ -219,9 +222,96 @@ a 10,000 step walk in addition to their normal 10,000 steps
 (resulting in over 20,000 steps per day)?  
 
 
+```r
+# Calculate steps per five minute interval
+# (in 24 hour cycle)
+# PerIntervalSum     <- aggregate(steps ~ factor(HHMM), activity, sum)
+PerIntervalMean    <- aggregate(steps ~ factor(HHMM), activity, mean)
+PerIntervalMedian  <- aggregate(steps ~ factor(HHMM), activity, median)
+ColumnNames <- c("HHMM", "steps")
+# colnames(PerIntervalSum)    <- ColumnNames
+colnames(PerIntervalMean)   <- ColumnNames
+colnames(PerIntervalMedian) <- ColumnNames
+
+
+PerIntervalMean$timeofday    <- strptime(PerIntervalMean$HHMM, "%H%M", tz = "")
+PerIntervalMedian$timeofday  <- strptime(PerIntervalMedian$HHMM, "%H%M", tz = "")
+
+Max5MinuteSteps <- PerIntervalMean[PerIntervalMean$steps == max(PerIntervalMean$steps), ]
+# ColumnNames <- c("timeofday", "steps")
+# colnames(Max5MinuteSteps) <- ColumnNames
+Max5MinuteSteps
+```
+
+```
+##     HHMM    steps           timeofday
+## 104 0835 206.1698 2015-09-17 08:35:00
+```
+
+```r
+plot(PerIntervalMean$timeofday, PerIntervalMean$steps, type = "l",
+          main = paste("Average Steps Per Five Minute Interval", 
+                       "\n Maximum = " , round(max(PerIntervalMean$steps), digits=0),
+                       "\n Maximum occurs at: ", format(Max5MinuteSteps$timeofday, "%H:%M AM")
+                        )
+          )
+
+abline(h = round(max(PerIntervalMean$steps), digits=0), col = "red") 
+```
+
+![](PA1_template_files/figure-html/unnamed-chunk-7-1.png) 
+
+```r
+# abline(v = Max5MinuteSteps$timeofday, col = "red") 
+```
+
 
 
 ### Imputing missing values
+Should we impute with 5 minute interval averages or medians.
+Here is a graph of the median steps per hour, it peaks at 60 steps
+and often takes on a zero value.
+
+
+```r
+plot(PerIntervalMedian$timeofday, PerIntervalMedian$steps, type = "l",
+          main = paste("Median Steps Per Five Minute Interval", 
+                       "\n Maximum = " , round(max(PerIntervalMedian$steps), digits=0)
+                       )
+
+    )
+```
+
+![](PA1_template_files/figure-html/unnamed-chunk-8-1.png) 
+
+
+
+Is the average being skewed by one extreme value at 8:35 AM?
+
+
+```r
+PeakIntervalSlice <- activity[activity$HHMM == "0835", ]
+# PeakIntervalSlice   # display of data omitted for space reasons.
+hist(PeakIntervalSlice$steps,
+    main = ("Histogram of raw steps @ 8:35 AM")
+)
+```
+
+![](PA1_template_files/figure-html/unnamed-chunk-9-1.png) 
+
+The histogram shows the problem; the distribution of raw (not summarized) steps 
+at 8:35 AM is bi-modal with the peaks at extreme values of zero and 
+700-800 steps per hour; neither a mean, nor a median is likely to summarize this well!
+
+Visual inspection of the data shows that zeros are not limited to weekends
+and the 700+ values occur during weekdays and are not the result of weekend
+special events or treadmill time.
+
+
+
+          
+          
+
 
 
 

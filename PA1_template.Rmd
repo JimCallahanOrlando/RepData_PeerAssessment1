@@ -3,9 +3,9 @@ title: 'Reproducible Research: Peer Assessment 1'
 author: "Jim Callahan"
 date: "September 13, 2015"
 output:
+  pdf_document: default
   html_document:
     keep_md: yes
-  pdf_document: default
 ---
 This report analyzes the number of steps taken by an anonymous individual
 user of a personal fitness armband device similar to the Nike "Fit" armband. 
@@ -169,10 +169,88 @@ in bed (with near zero steps)? and did the person participate in
 a 10,000 step walk in addition to their normal 10,000 steps  
 (resulting in over 20,000 steps per day)?  
 
+```{r}
+# Calculate steps per five minute interval
+# (in 24 hour cycle)
+# PerIntervalSum     <- aggregate(steps ~ factor(HHMM), activity, sum)
+PerIntervalMean    <- aggregate(steps ~ factor(HHMM), activity, mean)
+PerIntervalMedian  <- aggregate(steps ~ factor(HHMM), activity, median)
+ColumnNames <- c("HHMM", "steps")
+# colnames(PerIntervalSum)    <- ColumnNames
+colnames(PerIntervalMean)   <- ColumnNames
+colnames(PerIntervalMedian) <- ColumnNames
+
+
+PerIntervalMean$timeofday    <- strptime(PerIntervalMean$HHMM, "%H%M", tz = "")
+PerIntervalMedian$timeofday  <- strptime(PerIntervalMedian$HHMM, "%H%M", tz = "")
+
+Max5MinuteSteps <- PerIntervalMean[PerIntervalMean$steps == max(PerIntervalMean$steps), ]
+# ColumnNames <- c("timeofday", "steps")
+# colnames(Max5MinuteSteps) <- ColumnNames
+Max5MinuteSteps
+
+
+plot(PerIntervalMean$timeofday, PerIntervalMean$steps, type = "l",
+          main = paste("Average Steps Per Five Minute Interval", 
+                       "\n Maximum = " , round(max(PerIntervalMean$steps), digits=0),
+                       "\n Maximum occurs at: ", format(Max5MinuteSteps$timeofday, "%H:%M AM")
+                        )
+          )
+
+abline(h = round(max(PerIntervalMean$steps), digits=0), col = "red") 
+# abline(v = Max5MinuteSteps$timeofday, col = "red") 
+
+```
 
 
 
 ### Imputing missing values
+Should we impute with 5 minute interval averages or medians.
+Here is a graph of the median steps per hour, it peaks at 60 steps
+and often takes on a zero value.
+
+```{r}
+plot(PerIntervalMedian$timeofday, PerIntervalMedian$steps, type = "l",
+          main = paste("Median Steps Per Five Minute Interval", 
+                       "\n Maximum = " , round(max(PerIntervalMedian$steps), digits=0)
+                       )
+
+    )
+```
+
+
+
+Is the average being skewed by one extreme value at 8:35 AM?
+
+```{r}
+PeakIntervalSlice <- activity[activity$HHMM == "0835", ]
+# PeakIntervalSlice   # display of data omitted for space reasons.
+hist(PeakIntervalSlice$steps,
+    main = ("Histogram of raw steps @ 8:35 AM")
+)
+
+```
+
+The histogram shows the problem; the distribution of raw (not summarized) steps 
+at 8:35 AM is bi-modal with the peaks at extreme values of zero and 
+700-800 steps per hour; neither a mean, nor a median is likely to summarize this well!
+
+Visual inspection of the data shows that zeros are not limited to weekends
+and the 700+ values occur during weekdays and are not the result of weekend
+special events or treadmill time.
+
+My guess is that the five minute intervals are too narrow to capture the commute
+of this individual. The peak walking of the morning commute may occur during
+this window or may occur a little later or earlier depending on whether the commuter
+is running early or late. The five minute interval being to narrow is analogous
+to the bin ons a histogram being to narrow -- the histogram is noisey and the overall
+shape is lost.
+
+
+
+          
+          
+
 
 
 
