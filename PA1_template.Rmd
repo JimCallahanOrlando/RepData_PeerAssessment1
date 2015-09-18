@@ -3,9 +3,9 @@ title: 'Reproducible Research: Peer Assessment 1'
 author: "Jim Callahan"
 date: "September 13, 2015"
 output:
-  pdf_document: default
   html_document:
     keep_md: yes
+  pdf_document: default
 ---
 This report analyzes the number of steps taken by an anonymous individual
 user of a personal fitness armband device similar to the Nike "Fit" armband. 
@@ -205,8 +205,19 @@ abline(h = round(max(PerIntervalMean$steps), digits=0), col = "red")
 
 
 ### Imputing missing values
-Should we impute with 5 minute interval averages or medians.
-Here is a graph of the median steps per hour, it peaks at 60 steps
+As noted earlier, over 2,300 observations of the **"steps"** variable are missing, 
+while this is a lot; it is still only 13.1% of the 17,568 observations. 
+```{r, echo=TRUE}
+sum(is.na(activity$steps))       # How many missing values?
+mean(is.na(activity$steps))      # What percent missing values?
+head(activity$interval, 289)      # What does a full daily cycle look like?
+```
+
+There seems to be a regular pattern for time of day, but we still have to decided
+whether we should impute with 5 minute interval **averages** or **medians**.
+
+We have already computed a graph of the **five minute means (averages)**, for comparison 
+here is a graph of **median steps per five minutes**, it peaks at 60 steps
 and often takes on a zero value.
 
 ```{r}
@@ -218,6 +229,51 @@ plot(PerIntervalMedian$timeofday, PerIntervalMedian$steps, type = "l",
     )
 ```
 
+So, let's use the **"steps"** variable in the **"PerIntervalMedian"** data frame 
+to create a variable we can use to impute (fill-in) the missing values of 
+the **"steps"** variable in the **"activity"** data frame. We need to expand 
+the **"PerIntervalMedian"** version of **"steps"** which is just one day 
+to all 61 days (17,568 observations). We can do this in **R** by repeating 
+the variable 61 times using the **R rep()** function:
+
+```{r}
+activity$fill <- rep(PerIntervalMedian$steps, 61)
+str(activity$fill)
+```
+
+Now we can define two variables **maskNA** and **maskValue**.
+These zero-one variables are like dummy variables in econometrics or
+bit-masks in computer science.
+
+```{r}
+maskNA    <-  is.na(activity$steps)   # 1 where steps is missing; 0 everywhere else
+maskValue <- ~is.na(activity$steps)   # 1 where steps has a value; 0 eveywhere else
+```
+
+In order to fill in the missing values; we want to multiply **"steps"** by **"maskValue"**
+and multiply **"fill"** by **"maskNA"** and then add the resulting two variables
+together. What happens is **"maskValue"** preserves the values in **"steps"** while
+zeroing out the NAs; while "fill" times maskNA preserves the values where there are NAs
+and converts all of the other values to zero.
+
+Unfortunately, just multiplyting **"steps"**" by maskValue won't replace the NAs with zeros
+because NA times any value is still NA; so we have to use another method to replace
+the NAs in **"steps"** with zeros.
+
+```{r}
+# What we would have liked to have done:
+# activity$stepsNoMissing <- (activity$steps*maskValue) + (activity$fill*maskNA)
+#
+#Instead
+# Stackoverflow
+# http://stackoverflow.com/questions/10139284/set-na-to-0-in-r
+stepsNA2Zero <- activity$steps
+is.na(stepsNA2Zero) <- 0
+
+# Now we can add the values
+activity$stepsNoNA <- stepsNA2Zero + (activity$fill*maskNA)
+
+```
 
 
 Is the average being skewed by one extreme value at 8:35 AM?
@@ -248,10 +304,7 @@ shape is lost.
 
 
 
-          
-          
-
-
-
-
 ### Are there differences in activity patterns between weekdays and weekends?
+
+
+

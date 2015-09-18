@@ -245,7 +245,7 @@ Max5MinuteSteps
 
 ```
 ##     HHMM    steps           timeofday
-## 104 0835 206.1698 2015-09-17 08:35:00
+## 104 0835 206.1698 2015-09-18 08:35:00
 ```
 
 ```r
@@ -268,8 +268,58 @@ abline(h = round(max(PerIntervalMean$steps), digits=0), col = "red")
 
 
 ### Imputing missing values
-Should we impute with 5 minute interval averages or medians.
-Here is a graph of the median steps per hour, it peaks at 60 steps
+As noted earlier, over 2,300 observations of the **"steps"** variable are missing, 
+while this is a lot; it is still only 13.1% of the 17,568 observations. 
+
+```r
+sum(is.na(activity$steps))       # How many missing values?
+```
+
+```
+## [1] 2304
+```
+
+```r
+mean(is.na(activity$steps))      # What percent missing values?
+```
+
+```
+## [1] 0.1311475
+```
+
+```r
+head(activity$interval, 289)      # What does a full daily cycle look like?
+```
+
+```
+##   [1]    0    5   10   15   20   25   30   35   40   45   50   55  100  105
+##  [15]  110  115  120  125  130  135  140  145  150  155  200  205  210  215
+##  [29]  220  225  230  235  240  245  250  255  300  305  310  315  320  325
+##  [43]  330  335  340  345  350  355  400  405  410  415  420  425  430  435
+##  [57]  440  445  450  455  500  505  510  515  520  525  530  535  540  545
+##  [71]  550  555  600  605  610  615  620  625  630  635  640  645  650  655
+##  [85]  700  705  710  715  720  725  730  735  740  745  750  755  800  805
+##  [99]  810  815  820  825  830  835  840  845  850  855  900  905  910  915
+## [113]  920  925  930  935  940  945  950  955 1000 1005 1010 1015 1020 1025
+## [127] 1030 1035 1040 1045 1050 1055 1100 1105 1110 1115 1120 1125 1130 1135
+## [141] 1140 1145 1150 1155 1200 1205 1210 1215 1220 1225 1230 1235 1240 1245
+## [155] 1250 1255 1300 1305 1310 1315 1320 1325 1330 1335 1340 1345 1350 1355
+## [169] 1400 1405 1410 1415 1420 1425 1430 1435 1440 1445 1450 1455 1500 1505
+## [183] 1510 1515 1520 1525 1530 1535 1540 1545 1550 1555 1600 1605 1610 1615
+## [197] 1620 1625 1630 1635 1640 1645 1650 1655 1700 1705 1710 1715 1720 1725
+## [211] 1730 1735 1740 1745 1750 1755 1800 1805 1810 1815 1820 1825 1830 1835
+## [225] 1840 1845 1850 1855 1900 1905 1910 1915 1920 1925 1930 1935 1940 1945
+## [239] 1950 1955 2000 2005 2010 2015 2020 2025 2030 2035 2040 2045 2050 2055
+## [253] 2100 2105 2110 2115 2120 2125 2130 2135 2140 2145 2150 2155 2200 2205
+## [267] 2210 2215 2220 2225 2230 2235 2240 2245 2250 2255 2300 2305 2310 2315
+## [281] 2320 2325 2330 2335 2340 2345 2350 2355    0
+```
+
+There seems to be a regular pattern for time of day, but we still have to decided
+whether we should impute with 5 minute interval **averages** or **medians**.
+
+We have already computed a graph of the **five minute means (averages)**, for comparison 
+here is a graph of **median steps per five minutes**, it peaks at 60 steps
 and often takes on a zero value.
 
 
@@ -282,8 +332,59 @@ plot(PerIntervalMedian$timeofday, PerIntervalMedian$steps, type = "l",
     )
 ```
 
-![](PA1_template_files/figure-html/unnamed-chunk-8-1.png) 
+![](PA1_template_files/figure-html/unnamed-chunk-9-1.png) 
 
+So, let's use the **"steps"** variable in the **"PerIntervalMedian"** data frame 
+to create a variable we can use to impute (fill-in) the missing values of 
+the **"steps"** variable in the **"activity"** data frame. We need to expand 
+the **"PerIntervalMedian"** version of **"steps"** which is just one day 
+to all 61 days (17,568 observations). We can do this in **R** by repeating 
+the variable 61 times using the **R rep()** function:
+
+
+```r
+activity$fill <- rep(PerIntervalMedian$steps, 61)
+str(activity$fill)
+```
+
+```
+##  int [1:17568] 0 0 0 0 0 0 0 0 0 0 ...
+```
+
+Now we can define two variables **maskNA** and **maskValue**.
+These zero-one variables are like dummy variables in econometrics or
+bit-masks in computer science.
+
+
+```r
+maskNA    <-  is.na(activity$steps)   # 1 where steps is missing; 0 everywhere else
+maskValue <- ~is.na(activity$steps)   # 1 where steps has a value; 0 eveywhere else
+```
+
+In order to fill in the missing values; we want to multiply **"steps"** by **"maskValue"**
+and multiply **"fill"** by **"maskNA"** and then add the resulting two variables
+together. What happens is **"maskValue"** preserves the values in **"steps"** while
+zeroing out the NAs; while "fill" times maskNA preserves the values where there are NAs
+and converts all of the other values to zero.
+
+Unfortunately, just multiplyting **"steps"**" by maskValue won't replace the NAs with zeros
+because NA times any value is still NA; so we have to use another method to replace
+the NAs in **"steps"** with zeros.
+
+
+```r
+# What we would have liked to have done:
+# activity$stepsNoMissing <- (activity$steps*maskValue) + (activity$fill*maskNA)
+#
+#Instead
+# Stackoverflow
+# http://stackoverflow.com/questions/10139284/set-na-to-0-in-r
+stepsNA2Zero <- activity$steps
+is.na(stepsNA2Zero) <- 0
+
+# Now we can add the values
+activity$stepsNoNA <- stepsNA2Zero + (activity$fill*maskNA)
+```
 
 
 Is the average being skewed by one extreme value at 8:35 AM?
@@ -297,7 +398,7 @@ hist(PeakIntervalSlice$steps,
 )
 ```
 
-![](PA1_template_files/figure-html/unnamed-chunk-9-1.png) 
+![](PA1_template_files/figure-html/unnamed-chunk-13-1.png) 
 
 The histogram shows the problem; the distribution of raw (not summarized) steps 
 at 8:35 AM is bi-modal with the peaks at extreme values of zero and 
@@ -307,12 +408,16 @@ Visual inspection of the data shows that zeros are not limited to weekends
 and the 700+ values occur during weekdays and are not the result of weekend
 special events or treadmill time.
 
-
-
-          
-          
-
+My guess is that the five minute intervals are too narrow to capture the commute
+of this individual. The peak walking of the morning commute may occur during
+this window or may occur a little later or earlier depending on whether the commuter
+is running early or late. The five minute interval being to narrow is analogous
+to the bin ons a histogram being to narrow -- the histogram is noisey and the overall
+shape is lost.
 
 
 
 ### Are there differences in activity patterns between weekdays and weekends?
+
+
+
