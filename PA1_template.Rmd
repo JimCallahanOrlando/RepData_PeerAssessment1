@@ -268,10 +268,13 @@ the NAs in **"steps"** with zeros.
 # Stackoverflow
 # http://stackoverflow.com/questions/10139284/set-na-to-0-in-r
 stepsNA2Zero <- activity$steps
-is.na(stepsNA2Zero) <- 0
+stepsNA2Zero[is.na(stepsNA2Zero)] <- 0
+
 
 # Now we can add the values
 activity$stepsNoNA <- stepsNA2Zero + (activity$fill*maskNA)
+sum(is.na(activity$stepsNoNA))       # How many missing values in "NoNA" version?
+mean(is.na(activity$stepsNoNA))      # What percent missing values in "NoNA" version?
 
 ```
 
@@ -306,5 +309,16 @@ shape is lost.
 
 ### Are there differences in activity patterns between weekdays and weekends?
 
+```{r}
+DayTypePerIntervalMean    <- aggregate(steps ~ factor(HHMM)+daytype, activity, mean)
+DayTypePerIntervalMean
+
+WeekdayPerIntervalMean   <- DayTypePerIntervalMean[DayTypePerIntervalMean$daytype == "weekday", ]
+WeekendPerIntervalMean   <- DayTypePerIntervalMean[DayTypePerIntervalMean$daytype == "weekend", ]
+
+par(mfrow = c(2, 1) )
+hist(WeekdayPerIntervalMean$steps)
+hist(WeekendPerIntervalMean$steps)
+```
 
 
