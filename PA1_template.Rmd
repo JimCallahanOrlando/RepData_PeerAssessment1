@@ -17,14 +17,13 @@ October (30 days) and November (31 days) for a total of 61 days.
 In each hour there are 12 "five minute" intervals 
 (60/5 = 12 intervals per hour). Thus, there are 288 five minute 
 intervals in a 24 hour day (288 = 24 hours * 12 intervals per hour).
-Thus with 288 measurements per day for 61 days (24 hour days) 
+Therefore, with 288 measurements per day for 61 days (24 hour days) 
 one would **expect 17,568 observations** (17,568 = 61 days * 288 per 24 hour day).
 
 
-
 ### Loading and preprocessing the data
-The dataset is stored in a comma-separated-value (CSV) file in the main direcory of a GitHub repository. So, we can load the data with an R "read.csv()" function. In this case
-we will use an R dataframe name "activity" the same as the input filename. Finally, the initial struture of the R dataframe is shown with the R str() function:
+The dataset is stored in a comma-separated-value (CSV) file in the main direcory of a **GitHub** repository. So, we can load the data with an R "read.csv()" function. In this case
+name the **R** dataframe **"activity"**, the same name as the input filename. Finally, the initial struture of the **R** dataframe is shown with the R str() function:
 ```{r, echo=TRUE}
 #### Set directory to the local GitHub project of this assignment.
 setwd("~\\GitHub\\RepData_PeerAssessment1")
@@ -37,9 +36,9 @@ str(activity)
 
 **As expected**, for 61 days, **the "activity" data frame has 17,568 observations**.
 The **"activity"** data frame has three variables: **"steps", "date"** and **"interval"**.
-The initial values for the **"steps"** variable are missing.
-The  **"date"** variable is a character string we will want to convert
-that to an R date type using the R "as.Date()" function.
+The initial values for the **"steps"** variable are missing and are marked as "NA".
+The  **"date"** variable is a character string we will want to convert to 
+an **R** date type using the **R** "as.Date()" function.
 The **"interval"** variable is an integer that intially appears to be incremented
 by 5 for each observation, this first impression will be modified on 
 closer observation. 
@@ -51,10 +50,10 @@ dataset is that? For the **"interval"** variable, we want to know how often the 
 at zero (or does it increase all the way through the data set?).
 We will print 289 observations of **"interval"**, one more than the 288 observations per day.
 ```{r, echo=TRUE}
-activity$date <- as.Date(activity$date)
-sum(is.na(activity$steps))       # How many missing values?
-mean(is.na(activity$steps))      # What percent missing values?
-head(activity$interval, 289)      # What does a full daily cycle look like?
+activity$date <- as.Date(activity$date)   # coerce "date" to date data type
+sum(is.na(activity$steps))                # How many missing values?
+mean(is.na(activity$steps))               # What percent are missing values?
+head(activity$interval, 289)              # What does a full daily cycle look like?
 ```
 
 Over 2,300 observations of the **"steps"** variable are missing, 
@@ -66,9 +65,9 @@ called "imputation" and see whether that changes the analysis. Not shown,
 but there are no missing values for **"date"** and **"interval"**.
 
 The **"interval"** variable does not make sense as an integer.  
-Although, the **"interval"** variable does reset to zero at observation 67,
-as expected (recall there are 66 observations per 24 hour day); 
-the 66th observation is 2,355 rather than the 1,435 one would expect
+Although, the **"interval"** variable does reset to zero at observation 289,
+as expected (recall there are 288 observations per 24 hour day); 
+the 288th observation is 2,355 rather than the 1,435 one would expect
 if one multiplied the intervals 0 (zero) through 287 by 5 (1,435 = 287*5). 
 That is a big gap between 2,355 and 1,435 so something different is going on.  
 
@@ -90,10 +89,17 @@ activity$HHMM <- sprintf("%04d",as.integer(activity$interval))
 datetimestring     <- paste(activity$date, activity$HHMM)
 activity$datetime  <- strptime(datetimestring, 
                                "%Y-%m-%d %H%M", tz = "")
+
+# Use the weekday() function to interograte the POSIX datatime string 
+# to obtain a day of week abbrevation ("Sun", "Mon", "Tue", etc) for each date
 activity$dayofweek <- weekdays(activity$datetime, abbreviate=TRUE)
+
+# Create a weekday/weekend factor by first assigning all data to "weekday"
+# and then check for "Sat" or "Sun" and reassign to "weekend".
 activity$daytype = "weekday"
 activity$daytype[activity$dayofweek == "Sat" | activity$dayofweek == "Sun"] <- "weekend"
-# Convert to factors
+
+# Convert to R "factor"" data type
 activity$dayofweek = factor(activity$dayofweek)
 activity$daytype   = factor(activity$daytype)
 ```
@@ -108,14 +114,15 @@ str(activity)
 
 
 ### What is mean total number of steps taken per day?
-If we sum the steps all of the intervals for a given date, we have a daily total.
+If we sum the steps for all of the intervals for a given date, we have a daily total.
 This use of the **R aggregate()** function follows an example in Jared Lander's 
 book *"R for Everyone"* page 121 where he uses the **"diamonds"** data frame 
 which comes with the **ggplot2** package.
 
 Once we have a daily total for each of the days; we can calcuate a value for
 the average (mean) and median by removing the NAs, that would otherwise
-cause an NA result.
+cause an NA result.  We round the steps to zero because users expect a whole number
+of steps and we already have five significant digits of precision.
 ```{r, echo=TRUE}
 PerDay <- aggregate(steps ~ date, data=activity, sum)  
 meanstepsperday <- round(mean(PerDay$steps, na.rm = TRUE), digits = 0)
@@ -127,20 +134,17 @@ medianstepsperday
 
 The **average (mean) number of steps per day** is 
 **`r format(meanstepsperday, format="f", big.mark = ",")` **; 
-and the **median number of steps per day** is close at 
+and the **median number of steps per day** is very close at 
 **`r format(medianstepsperday, format="f", big.mark = ",")`**.  
 
 ### What is the average daily activity pattern?
-These 10,000+ values seem plausible to me for an active person   
-with a 10,000 step a day goal, which seems to be popular goal:
+These 10,000+ values seem plausible for an active person with a 10,000 steps 
+a day goal, which seems to be popular goal:
 
-> "The origins of the 10,000-steps recommendation  
-> aren't exactly scientific.  Pedometers sold in Japan  
-> in the 1960s were marketed under the name "manpo-kei,"  
-> which translates to "10,000 steps meter"   
-> ...studies conducted since then suggest that people who 
-> increased their walking to 10,000 steps daily  
-> experience health benefits."  
+> "The origins of the 10,000-steps recommendation aren't exactly scientific. Pedometers 
+> sold in Japan in the 1960s were marketed under the name "manpo-kei," which translates 
+> to "10,000 steps meter"  ...studies conducted since then suggest that people who 
+> increased their walking to 10,000 steps daily experience health benefits."  
 > Rachael Rettner, *"The Truth About '10,000 Steps' a Day"* 
 LiveScience.org, March 2014  
 retrieved from **LiveScience.org** during September 2015  
@@ -161,12 +165,11 @@ abline(v = mean(PerDay$steps), col = "Green")
 abline(v = median(PerDay$steps), col = "Blue")
 ```
 
-While a central value (mean or median) near 10,000 seems plausible for   
-an active person with a 10,000 steps per day goal; the extremes of   
-near zero steps per day and a maximum over 20,000 steps per day may   
-require further inquiry. For example, did the person spend a sick day  
-in bed (with near zero steps)? and did the person participate in   
-a 10,000 step walk in addition to their normal 10,000 steps  
+While a central value (mean or median) near 10,000 seems plausible for an active 
+person with a 10,000 steps per day goal; the extremes of near zero steps per day 
+and a maximum over 20,000 steps per day may require further inquiry. For example, 
+did the person spend a sick day in bed (with near zero steps)? and did the person 
+participate in a 10,000 step walk in addition to their normal 10,000 steps  
 (resulting in over 20,000 steps per day)?  
 
 ```{r}
@@ -191,10 +194,10 @@ Max5MinuteSteps
 
 
 plot(PerIntervalMean$timeofday, PerIntervalMean$steps, type = "l",
-          main = paste("Average Steps Per Five Minute Interval", 
-                       "\n Maximum = " , round(max(PerIntervalMean$steps), digits=0),
-                       "\n Maximum occurs at: ", format(Max5MinuteSteps$timeofday, "%H:%M AM")
-                        )
+    main = paste("Average Steps Per Five Minute Interval", 
+                 "\n Maximum = " , round(max(PerIntervalMean$steps), digits=0),
+                 "\n Maximum occurs at: ", format(Max5MinuteSteps$timeofday, "%H:%M AM")
+                )
           )
 
 abline(h = round(max(PerIntervalMean$steps), digits=0), col = "red") 
@@ -208,9 +211,8 @@ abline(h = round(max(PerIntervalMean$steps), digits=0), col = "red")
 As noted earlier, over 2,300 observations of the **"steps"** variable are missing, 
 while this is a lot; it is still only 13.1% of the 17,568 observations. 
 ```{r, echo=TRUE}
-sum(is.na(activity$steps))       # How many missing values?
+sum(is.na(activity$steps))       # How many missing values?  
 mean(is.na(activity$steps))      # What percent missing values?
-head(activity$interval, 289)      # What does a full daily cycle look like?
 ```
 
 There seems to be a regular pattern for time of day, but we still have to decided
@@ -230,16 +232,19 @@ plot(PerIntervalMedian$timeofday, PerIntervalMedian$steps, type = "l",
 ```
 
 So, let's use the **"steps"** variable in the **"PerIntervalMedian"** data frame 
-to create a variable we can use to impute (fill-in) the missing values of 
+to create a variable we can use to **impute (fill-in) the missing values** of 
 the **"steps"** variable in the **"activity"** data frame. We need to expand 
-the **"PerIntervalMedian"** version of **"steps"** which is just one day 
-to all 61 days (17,568 observations). We can do this in **R** by repeating 
-the variable 61 times using the **R rep()** function:
+the **"PerIntervalMedian"** version of **"steps"** from just one day 
+to all **61 days** (17,568 observations). We can do this in **R** by repeating 
+the variable **61 times** using the **R rep()** function:
 
 ```{r}
+# Expand PerIntervalMedian from one day to 61 days by repeating the daily values
 activity$fill <- rep(PerIntervalMedian$steps, 61)
 str(activity$fill)
 ```
+We now have a prediction variable **"fill"** that we can use to "fill-in" (replace)
+the missing values (NA) of the **"steps"** variable.
 
 Now we can define two variables **maskNA** and **maskValue**.
 These zero-one variables are like dummy variables in econometrics or
