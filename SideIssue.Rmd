@@ -1,0 +1,32 @@
+---
+title: "SideIssue.Rmd"
+author: "Jim Callahan"
+date: "September 20, 2015"
+output: html_document
+---
+
+Is the average being skewed by one extreme value at 8:35 AM?
+
+```{r}
+PeakIntervalSlice <- activity[activity$HHMM == "0835", ]
+# PeakIntervalSlice   # display of data omitted for space reasons.
+hist(PeakIntervalSlice$steps,
+     main = ("Histogram of raw steps @ 8:35 AM")
+)
+
+```
+
+The histogram shows the problem; the distribution of raw (not summarized) steps 
+at 8:35 AM is bi-modal with the peaks at extreme values of zero and 
+700-800 steps per hour; neither a mean, nor a median is likely to summarize this well!
+    
+    Visual inspection of the data shows that zeros are not limited to weekends
+and the 700+ values occur during weekdays and are not the result of weekend
+special events or treadmill time.
+
+My guess is that the five minute intervals are too narrow to capture the commute
+of this individual. The peak walking of the morning commute may occur during
+this window or may occur a little later or earlier depending on whether the commuter
+is running early or late. The five minute interval being to narrow is analogous
+to the bin ons a histogram being to narrow -- the histogram is noisey and the overall
+shape is lost.

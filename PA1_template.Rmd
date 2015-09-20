@@ -53,7 +53,6 @@ We will print 289 observations of **"interval"**, one more than the 288 observat
 activity$date <- as.Date(activity$date)   # coerce "date" to date data type
 sum(is.na(activity$steps))                # How many missing values?
 mean(is.na(activity$steps))               # What percent are missing values?
-head(activity$interval, 289)              # What does a full daily cycle look like?
 ```
 
 Over 2,300 observations of the **"steps"** variable are missing, 
@@ -64,6 +63,10 @@ to guess (technically, "impute") the missing values in a process
 called "imputation" and see whether that changes the analysis. Not shown,
 but there are no missing values for **"date"** and **"interval"**.
 
+As for **"interval"**, What does a full daily cycle look like?
+```{r, echo=TRUE}
+head(activity$interval, 289)              # What does a full daily cycle look like?
+```
 The **"interval"** variable does not make sense as an integer.  
 Although, the **"interval"** variable does reset to zero at observation 289,
 as expected (recall there are 288 observations per 24 hour day); 
@@ -127,9 +130,9 @@ of steps and we already have five significant digits of precision.
 PerDay <- aggregate(steps ~ date, data=activity, sum)  
 meanstepsperday <- round(mean(PerDay$steps, na.rm = TRUE), digits = 0)
 meanstepsperday
+
 medianstepsperday <- median(PerDay$steps, na.rm = TRUE) 
 medianstepsperday
-
 ```
 
 The **average (mean) number of steps per day** is 
@@ -138,8 +141,8 @@ and the **median number of steps per day** is very close at
 **`r format(medianstepsperday, format="f", big.mark = ",")`**.  
 
 ### What is the average daily activity pattern?
-These 10,000+ values seem plausible for an active person with a 10,000 steps 
-a day goal, which seems to be popular goal:
+As a "sanity check", the 10,000+ average steps per day seems plausible 
+for an active person with a 10,000 steps a day goal, which seems to be a popular goal:
 
 > "The origins of the 10,000-steps recommendation aren't exactly scientific. Pedometers 
 > sold in Japan in the 1960s were marketed under the name "manpo-kei," which translates 
@@ -164,7 +167,6 @@ hist(PerDay$steps, breaks=25,
 abline(v = mean(PerDay$steps), col = "Green")
 abline(v = median(PerDay$steps), col = "Blue")
 ```
-
 While a central value (mean or median) near 10,000 seems plausible for an active 
 person with a 10,000 steps per day goal; the extremes of near zero steps per day 
 and a maximum over 20,000 steps per day may require further inquiry. For example, 
@@ -172,10 +174,11 @@ did the person spend a sick day in bed (with near zero steps)? and did the perso
 participate in a 10,000 step walk in addition to their normal 10,000 steps  
 (resulting in over 20,000 steps per day)?  
 
+What interval contains the maximum number of steps? and how does the number of steps
+vary over the course of an average day?
 ```{r}
 # Calculate steps per five minute interval
 # (in 24 hour cycle)
-# PerIntervalSum     <- aggregate(steps ~ factor(HHMM), activity, sum)
 PerIntervalMean    <- aggregate(steps ~ factor(HHMM), activity, mean)
 PerIntervalMedian  <- aggregate(steps ~ factor(HHMM), activity, median)
 ColumnNames <- c("HHMM", "steps")
@@ -188,28 +191,34 @@ PerIntervalMean$timeofday    <- strptime(PerIntervalMean$HHMM, "%H%M", tz = "")
 PerIntervalMedian$timeofday  <- strptime(PerIntervalMedian$HHMM, "%H%M", tz = "")
 
 Max5MinuteSteps <- PerIntervalMean[PerIntervalMean$steps == max(PerIntervalMean$steps), ]
-# ColumnNames <- c("timeofday", "steps")
-# colnames(Max5MinuteSteps) <- ColumnNames
 Max5MinuteSteps
+```
+The interval beginning at 8:35 AM on average has the most steps with 
+`r round(max(PerIntervalMean$steps), digits=0)` steps.
 
-
+```{r}
 plot(PerIntervalMean$timeofday, PerIntervalMean$steps, type = "l",
+    xlab = "Starting time of each five minute interval",
+    ylab = "Avg Steps per Interval",
     main = paste("Average Steps Per Five Minute Interval", 
                  "\n Maximum = " , round(max(PerIntervalMean$steps), digits=0),
-                 "\n Maximum occurs at: ", format(Max5MinuteSteps$timeofday, "%H:%M AM")
-                )
-          )
+                 "\n Maximum occurs at: ", format(Max5MinuteSteps$timeofday, "%H:%M AM"),
+                 "Interval"
+                 )
+    )
 
 abline(h = round(max(PerIntervalMean$steps), digits=0), col = "red") 
-# abline(v = Max5MinuteSteps$timeofday, col = "red") 
-
 ```
-
+The number of steps in the graph could be interpreted as the person sleeps 
+between midnight and 5 AM, gets up around 5 or 6 AM and commutes to work by 9 AM, 
+has a lunch hour and returns home between 5 PM and 7 PM. Such a pattern would
+be consistent with the peaks, but is conjecture and the reality may be different.
 
 
 ### Imputing missing values
-As noted earlier, over 2,300 observations of the **"steps"** variable are missing, 
-while this is a lot; it is still only 13.1% of the 17,568 observations. 
+So far, we have ignored (omitted) the missing values, and as noted earlier, 
+over 2,300 observations of the **"steps"** variable are missing, while this is a lot; 
+it is still only 13.1% of the 17,568 observations. 
 ```{r, echo=TRUE}
 sum(is.na(activity$steps))       # How many missing values?  
 mean(is.na(activity$steps))      # What percent missing values?
@@ -218,7 +227,7 @@ mean(is.na(activity$steps))      # What percent missing values?
 There seems to be a regular pattern for time of day, but we still have to decided
 whether we should impute with 5 minute interval **averages** or **medians**.
 
-We have already computed a graph of the **five minute means (averages)**, for comparison 
+We have already made a graph of the **five minute means (averages)**, and for comparison 
 here is a graph of **median steps per five minutes**, it peaks at 60 steps
 and often takes on a zero value.
 
@@ -231,10 +240,8 @@ plot(PerIntervalMedian$timeofday, PerIntervalMedian$steps, type = "l",
     )
 ```
 
-So, let's use the **"steps"** variable in the **"PerIntervalMedian"** data frame 
-to create a variable we can use to **impute (fill-in) the missing values** of 
-the **"steps"** variable in the **"activity"** data frame. We need to expand 
-the **"PerIntervalMedian"** version of **"steps"** from just one day 
+Overall, the median graph shows a much sharper, commute to work, lunch hour and return
+from work and sleep pattern. It is much less noisey and extreme. So, let's use the **"steps"** variable in the **"PerIntervalMedian"** data frame to create a variable we can use to **impute (fill-in) the missing values** of the **"steps"** variable in the **"activity"** data frame. We need to expand the **"PerIntervalMedian"** version of **"steps"** from just one day 
 to all **61 days** (17,568 observations). We can do this in **R** by repeating 
 the variable **61 times** using the **R rep()** function:
 
@@ -246,84 +253,57 @@ str(activity$fill)
 We now have a prediction variable **"fill"** that we can use to "fill-in" (replace)
 the missing values (NA) of the **"steps"** variable.
 
-Now we can define two variables **maskNA** and **maskValue**.
-These zero-one variables are like dummy variables in econometrics or
-bit-masks in computer science.
+The strategy for replacement is to "zero-out" the unwanted values in **"steps"** 
+and **"fill"** using **R's** subsetting (square brackets) and the is.na() function.
+This way we can zero out the NA's in a copy of **"steps"** (we want to get rid of) 
+and zero out the opposite values in a copy of **"fill" ** that correspond to non-NA 
+values in **"steps"** (we want to keep). Once we have the zeros in the correct places 
+we can simply add the variables together into a third variable.
 
 ```{r}
-maskNA    <-  is.na(activity$steps)   # 1 where steps is missing; 0 everywhere else
-maskValue <- ~is.na(activity$steps)   # 1 where steps has a value; 0 eveywhere else
-```
-
-In order to fill in the missing values; we want to multiply **"steps"** by **"maskValue"**
-and multiply **"fill"** by **"maskNA"** and then add the resulting two variables
-together. What happens is **"maskValue"** preserves the values in **"steps"** while
-zeroing out the NAs; while "fill" times maskNA preserves the values where there are NAs
-and converts all of the other values to zero.
-
-Unfortunately, just multiplyting **"steps"**" by maskValue won't replace the NAs with zeros
-because NA times any value is still NA; so we have to use another method to replace
-the NAs in **"steps"** with zeros.
-
-```{r}
-# What we would have liked to have done:
-# activity$stepsNoMissing <- (activity$steps*maskValue) + (activity$fill*maskNA)
-#
-#Instead
-# Stackoverflow
-# http://stackoverflow.com/questions/10139284/set-na-to-0-in-r
+# Keep the non-NA values; zero-out the NA observations.
 stepsNA2Zero <- activity$steps
-stepsNA2Zero[is.na(stepsNA2Zero)] <- 0
+stepsNA2Zero[is.na(activity$steps)] <- 0
 
+# Keep the values needed to fill NAs; but zero-out the others.
+# NOTE: this subset is for "not-NA"
+filltheNAs <- activity$fill
+filltheNAs[!is.na(activity$steps)] <- 0
 
 # Now we can add the values
-activity$stepsNoNA <- stepsNA2Zero + (activity$fill*maskNA)
-sum(is.na(activity$stepsNoNA))       # How many missing values in "NoNA" version?
-mean(is.na(activity$stepsNoNA))      # What percent missing values in "NoNA" version?
-
+activity$stepsNoNA <- stepsNA2Zero + filltheNAs
+activity$stepsNoNA <- round(activity$stepsNoNA, digits = 0)
 ```
 
-
-Is the average being skewed by one extreme value at 8:35 AM?
+We confirm our NA fill worked, and the number of NAs in **"activity$stepsNoNA"** is zero.
 
 ```{r}
-PeakIntervalSlice <- activity[activity$HHMM == "0835", ]
-# PeakIntervalSlice   # display of data omitted for space reasons.
-hist(PeakIntervalSlice$steps,
-    main = ("Histogram of raw steps @ 8:35 AM")
-)
-
+sum(is.na(activity$stepsNoNA))       # How many missing values in "NoNA" version?
 ```
-
-The histogram shows the problem; the distribution of raw (not summarized) steps 
-at 8:35 AM is bi-modal with the peaks at extreme values of zero and 
-700-800 steps per hour; neither a mean, nor a median is likely to summarize this well!
-
-Visual inspection of the data shows that zeros are not limited to weekends
-and the 700+ values occur during weekdays and are not the result of weekend
-special events or treadmill time.
-
-My guess is that the five minute intervals are too narrow to capture the commute
-of this individual. The peak walking of the morning commute may occur during
-this window or may occur a little later or earlier depending on whether the commuter
-is running early or late. The five minute interval being to narrow is analogous
-to the bin ons a histogram being to narrow -- the histogram is noisey and the overall
-shape is lost.
-
 
 
 ### Are there differences in activity patterns between weekdays and weekends?
-
+Using our newly filled in **"stepsNoNA"** variable we can look to see if there is any 
+difference between weekdays and weekends.
 ```{r}
-DayTypePerIntervalMean    <- aggregate(steps ~ factor(HHMM)+daytype, activity, mean)
-DayTypePerIntervalMean
+ColumnNames <- c("HHMM", "daytype", "stepsNoNA")
+DayTypePerIntervalMean    <- aggregate(stepsNoNA ~ factor(HHMM)+daytype, data=activity, mean)
+colnames(DayTypePerIntervalMean) <- ColumnNames
+DayTypePerIntervalMean$timeofday    <- strptime(DayTypePerIntervalMean$HHMM, "%H%M", tz = "")
+DayTypePerIntervalMean$interval <- as.integer(DayTypePerIntervalMean$HHMM)
 
 WeekdayPerIntervalMean   <- DayTypePerIntervalMean[DayTypePerIntervalMean$daytype == "weekday", ]
 WeekendPerIntervalMean   <- DayTypePerIntervalMean[DayTypePerIntervalMean$daytype == "weekend", ]
 
-par(mfrow = c(2, 1) )
-hist(WeekdayPerIntervalMean$steps)
-hist(WeekendPerIntervalMean$steps)
+require(ggplot2)
+# use facets to display type.
+# HONOR CODE: "R Graphics Cookbook" by Winston Chang page 163 and 208
+par(mar = c(4, 4, 4, 1) )
+line2 <- qplot( data = DayTypePerIntervalMean, x = interval, y = stepsNoNA) +
+    geom_line() + facet_grid(. ~daytype) +  
+    ggtitle("Mean Steps per Five Minute Interval") +  
+    xlab("Five minute interval number - 0 to 287") +  
+    ylab("Avg Steps per Interval")
+line2
 ```
-
-
+The weekend has activity throughout the day and is less peaked at typical commuter hours.
