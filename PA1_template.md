@@ -1,6 +1,12 @@
-# Reproducible Research: Peer Assessment 1
-Jim Callahan  
-September 13, 2015  
+---
+title: 'Reproducible Research: Peer Assessment 1'
+author: "Jim Callahan"
+date: "September 13, 2015"
+output:
+  html_document:
+    keep_md: yes
+  pdf_document: default
+---
 This report analyzes the number of steps taken by an anonymous individual
 user of a personal fitness armband device similar to the Nike "Fit" armband. 
 The number of steps were measured over five minute intervals, 
@@ -216,7 +222,7 @@ LiveScience.org, March 2014
 retrieved from **LiveScience.org** during September 2015  
 http://www.livescience.com/43956-walking-10000-steps-healthy.html
 
-![](PA1_template_files/figure-html/unnamed-chunk-7-1.png) 
+![plot of chunk unnamed-chunk-7](figure/unnamed-chunk-7-1.png) 
 While a central value (mean or median) near 10,000 seems plausible for an active 
 person with a 10,000 steps per day goal; the extremes of near zero steps per day 
 and a maximum over 20,000 steps per day may require further inquiry. For example, 
@@ -267,7 +273,7 @@ plot(PerIntervalMean$timeofday, PerIntervalMean$steps, type = "l",
 abline(h = round(max(PerIntervalMean$steps), digits=0), col = "red") 
 ```
 
-![](PA1_template_files/figure-html/unnamed-chunk-9-1.png) 
+![plot of chunk unnamed-chunk-9](figure/unnamed-chunk-9-1.png) 
 The number of steps in the graph could be interpreted as the person sleeps 
 between midnight and 5 AM, gets up around 5 or 6 AM and commutes to work by 9 AM, 
 has a lunch hour and returns home between 5 PM and 7 PM. Such a pattern would
@@ -312,7 +318,7 @@ plot(PerIntervalMedian$timeofday, PerIntervalMedian$steps, type = "l",
     )
 ```
 
-![](PA1_template_files/figure-html/unnamed-chunk-11-1.png) 
+![plot of chunk unnamed-chunk-11](figure/unnamed-chunk-11-1.png) 
 
 Overall, the median graph shows a much sharper, commute to work, lunch hour and return
 from work and sleep pattern. It is much less noisey and extreme. So, let's use the **"steps"** variable in the **"PerIntervalMedian"** data frame to create a variable we can use to **impute (fill-in) the missing values** of the **"steps"** variable in the **"activity"** data frame. We need to expand the **"PerIntervalMedian"** version of **"steps"** from just one day 
@@ -382,13 +388,6 @@ WeekdayPerIntervalMean   <- DayTypePerIntervalMean[DayTypePerIntervalMean$daytyp
 WeekendPerIntervalMean   <- DayTypePerIntervalMean[DayTypePerIntervalMean$daytype == "weekend", ]
 
 require(ggplot2)
-```
-
-```
-## Loading required package: ggplot2
-```
-
-```r
 # use facets to display type.
 # HONOR CODE: "R Graphics Cookbook" by Winston Chang page 163 and 208
 par(mar = c(4, 4, 4, 1) )
@@ -400,5 +399,5 @@ line2 <- qplot( data = DayTypePerIntervalMean, x = interval, y = stepsNoNA) +
 line2
 ```
 
-![](PA1_template_files/figure-html/unnamed-chunk-15-1.png) 
+![plot of chunk unnamed-chunk-15](figure/unnamed-chunk-15-1.png) 
 The weekend has activity throughout the day and is less peaked at typical commuter hours.
